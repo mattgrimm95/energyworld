@@ -60,4 +60,30 @@ export async function statsRoutes(
       })),
     });
   });
+
+  app.get<{
+    Querystring: { metric?: string; year?: string };
+  }>("/stats/choropleth", async (request, reply) => {
+    const { metric = "energy_consumption", year: yearParam } = request.query;
+
+    if (!METRIC_TYPES.includes(metric as (typeof METRIC_TYPES)[number])) {
+      return reply
+        .status(400)
+        .send({ error: `Invalid metric. Use: ${METRIC_TYPES.join(", ")}` });
+    }
+
+    const year = yearParam ? parseInt(yearParam, 10) : 2022;
+
+    const rows = await db
+      .select({
+        iso3: countries.iso3,
+        name: countries.name,
+        value: stats.value,
+      })
+      .from(stats)
+      .innerJoin(countries, eq(stats.countryId, countries.id))
+      .where(and(eq(stats.metricType, metric), eq(stats.year, year)));
+
+    return reply.send({ metric, year, data: rows });
+  });
 }
