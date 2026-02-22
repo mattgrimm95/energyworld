@@ -170,16 +170,14 @@ export function ComparisonPanel({
         })}
       </div>
       <div className="p-4 overflow-y-auto flex-1 space-y-5">
-        {(["energy_consumption", "exports", "imports"] as MetricType[]).map(
-          (metric) => (
-            <ComparisonChart
-              key={metric}
-              metric={metric}
-              statsMap={statsMap}
-              selectedCountries={selectedCountries}
-            />
-          )
-        )}
+        {(Object.keys(METRIC_LABELS) as MetricType[]).map((metric) => (
+          <ComparisonChart
+            key={metric}
+            metric={metric}
+            statsMap={statsMap}
+            selectedCountries={selectedCountries}
+          />
+        ))}
       </div>
     </div>
   );

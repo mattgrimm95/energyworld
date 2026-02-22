@@ -1,6 +1,20 @@
 import { METRIC_LABELS } from "../api/client";
 import type { MetricType } from "../api/client";
 
+const ENERGY_TRADE_METRICS: MetricType[] = [
+  "energy_consumption",
+  "exports",
+  "imports",
+];
+const MINERAL_METRICS: MetricType[] = [
+  "copper_production",
+  "lithium_production",
+  "cobalt_production",
+  "rare_earth_production",
+  "silicon_production",
+  "nickel_production",
+];
+
 type Props = {
   metric: MetricType | null;
   year: number;
@@ -28,13 +42,20 @@ export function ChoroplethControls({
         className="bg-transparent text-sm text-white outline-none cursor-pointer [&>option]:bg-slate-800"
       >
         <option value="">No choropleth</option>
-        {(Object.entries(METRIC_LABELS) as [MetricType, string][]).map(
-          ([key, label]) => (
+        <optgroup label="Energy & Trade">
+          {ENERGY_TRADE_METRICS.map((key) => (
             <option key={key} value={key}>
-              {label}
+              {METRIC_LABELS[key]}
             </option>
-          )
-        )}
+          ))}
+        </optgroup>
+        <optgroup label="Critical Minerals">
+          {MINERAL_METRICS.map((key) => (
+            <option key={key} value={key}>
+              {METRIC_LABELS[key]}
+            </option>
+          ))}
+        </optgroup>
       </select>
       {metric && (
         <select

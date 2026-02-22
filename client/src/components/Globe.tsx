@@ -50,6 +50,12 @@ const CHOROPLETH_SCALES: Record<MetricType, [number, number]> = {
   energy_consumption: [0, 45000],
   exports: [0, 3600],
   imports: [0, 3400],
+  copper_production: [0, 6000],
+  lithium_production: [0, 61000],
+  cobalt_production: [0, 130000],
+  rare_earth_production: [0, 210000],
+  silicon_production: [0, 5500],
+  nickel_production: [0, 1600],
 };
 
 function choroplethColor(

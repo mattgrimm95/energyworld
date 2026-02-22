@@ -2,7 +2,17 @@ import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { eq, and } from "drizzle-orm";
 import { db, stats, countries } from "../db/index.js";
 
-const METRIC_TYPES = ["energy_consumption", "exports", "imports"] as const;
+const METRIC_TYPES = [
+  "energy_consumption",
+  "exports",
+  "imports",
+  "copper_production",
+  "lithium_production",
+  "cobalt_production",
+  "rare_earth_production",
+  "silicon_production",
+  "nickel_production",
+] as const;
 
 export async function statsRoutes(
   app: FastifyInstance,

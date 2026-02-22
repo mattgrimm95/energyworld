@@ -30,7 +30,16 @@ export type ChoroplethResponse = {
   data: ChoroplethRow[];
 };
 
-export type MetricType = "energy_consumption" | "exports" | "imports";
+export type MetricType =
+  | "energy_consumption"
+  | "exports"
+  | "imports"
+  | "copper_production"
+  | "lithium_production"
+  | "cobalt_production"
+  | "rare_earth_production"
+  | "silicon_production"
+  | "nickel_production";
 
 export type ReserveType = "oil" | "natural_gas" | "coal" | "oil_sands" | "shale";
 
@@ -68,12 +77,24 @@ export const METRIC_LABELS: Record<MetricType, string> = {
   energy_consumption: "Energy Consumption",
   exports: "Exports",
   imports: "Imports",
+  copper_production: "Copper Production",
+  lithium_production: "Lithium Production",
+  cobalt_production: "Cobalt Production",
+  rare_earth_production: "Rare Earth Production",
+  silicon_production: "Silicon Production",
+  nickel_production: "Nickel Production",
 };
 
 export const METRIC_UNITS: Record<MetricType, string> = {
   energy_consumption: "TWh",
   exports: "B USD",
   imports: "B USD",
+  copper_production: "kt",
+  lithium_production: "t",
+  cobalt_production: "t",
+  rare_earth_production: "t REO",
+  silicon_production: "kt",
+  nickel_production: "kt",
 };
 
 export async function fetchCountries(): Promise<Country[]> {

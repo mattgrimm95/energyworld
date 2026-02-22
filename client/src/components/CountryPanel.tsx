@@ -24,6 +24,12 @@ const CHART_COLORS: Record<string, string> = {
   energy_consumption: "#f59e0b",
   exports: "#22c55e",
   imports: "#3b82f6",
+  copper_production: "#d97706",
+  lithium_production: "#06b6d4",
+  cobalt_production: "#8b5cf6",
+  rare_earth_production: "#ec4899",
+  silicon_production: "#64748b",
+  nickel_production: "#14b8a6",
 };
 
 function MetricChart({
@@ -147,7 +153,11 @@ export function CountryPanel({
         {!loading && !error && stats && (
           <div className="space-y-5">
             {(
-              ["energy_consumption", "exports", "imports"] as MetricType[]
+              [
+                "energy_consumption",
+                "exports",
+                "imports",
+              ] as MetricType[]
             ).map((metric) => (
               <MetricChart
                 key={metric}
@@ -155,6 +165,42 @@ export function CountryPanel({
                 rows={byMetric[metric] ?? []}
               />
             ))}
+            {(
+              [
+                "copper_production",
+                "lithium_production",
+                "cobalt_production",
+                "rare_earth_production",
+                "silicon_production",
+                "nickel_production",
+              ] as MetricType[]
+            ).some((m) => (byMetric[m]?.length ?? 0) > 0) && (
+              <>
+                <div className="border-t border-slate-600/50 pt-3 mt-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+                    Critical Minerals
+                  </h3>
+                </div>
+                {(
+                  [
+                    "copper_production",
+                    "lithium_production",
+                    "cobalt_production",
+                    "rare_earth_production",
+                    "silicon_production",
+                    "nickel_production",
+                  ] as MetricType[]
+                ).map((metric) =>
+                  (byMetric[metric]?.length ?? 0) > 0 ? (
+                    <MetricChart
+                      key={metric}
+                      metric={metric}
+                      rows={byMetric[metric]}
+                    />
+                  ) : null
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

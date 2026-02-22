@@ -5,6 +5,12 @@ import {
   ENERGY_CONSUMPTION,
   EXPORTS,
   IMPORTS,
+  COPPER_PRODUCTION,
+  LITHIUM_PRODUCTION,
+  COBALT_PRODUCTION,
+  RARE_EARTH_PRODUCTION,
+  SILICON_PRODUCTION,
+  NICKEL_PRODUCTION,
 } from "./seed-data.js";
 import { ENERGY_RESERVES } from "./reserves-data.js";
 import { PIPELINES } from "./pipelines-data.js";
@@ -36,6 +42,12 @@ function seed() {
     { data: ENERGY_CONSUMPTION, type: "energy_consumption", unit: "TWh" },
     { data: EXPORTS, type: "exports", unit: "billion USD" },
     { data: IMPORTS, type: "imports", unit: "billion USD" },
+    { data: COPPER_PRODUCTION, type: "copper_production", unit: "kt" },
+    { data: LITHIUM_PRODUCTION, type: "lithium_production", unit: "tonnes" },
+    { data: COBALT_PRODUCTION, type: "cobalt_production", unit: "tonnes" },
+    { data: RARE_EARTH_PRODUCTION, type: "rare_earth_production", unit: "tonnes REO" },
+    { data: SILICON_PRODUCTION, type: "silicon_production", unit: "kt" },
+    { data: NICKEL_PRODUCTION, type: "nickel_production", unit: "kt" },
   ] as const;
 
   for (const { data, type, unit } of metrics) {
