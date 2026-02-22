@@ -39,7 +39,7 @@ export function ChoroplethControls({
             e.target.value ? (e.target.value as MetricType) : null
           )
         }
-        className="bg-transparent text-sm text-white outline-none cursor-pointer [&>option]:bg-slate-800"
+        className="bg-slate-700 text-slate-100 text-sm rounded border border-slate-600 outline-none cursor-pointer focus:ring-1 focus:ring-slate-500 [&>option]:bg-slate-800 [&>option]:text-slate-100"
       >
         <option value="">No choropleth</option>
         <optgroup label="Energy & Trade">
@@ -61,7 +61,7 @@ export function ChoroplethControls({
         <select
           value={year}
           onChange={(e) => onYearChange(Number(e.target.value))}
-          className="bg-transparent text-sm text-white outline-none cursor-pointer [&>option]:bg-slate-800"
+          className="bg-slate-700 text-slate-100 text-sm rounded border border-slate-600 outline-none cursor-pointer focus:ring-1 focus:ring-slate-500 [&>option]:bg-slate-800 [&>option]:text-slate-100"
         >
           {YEARS.map((y) => (
             <option key={y} value={y}>

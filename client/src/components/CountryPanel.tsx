@@ -119,7 +119,7 @@ export function CountryPanel({
   );
 
   return (
-    <div className="w-full h-full min-h-0 bg-slate-800/95 dark:bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-600/50 overflow-hidden flex flex-col">
+    <div className="w-full h-full min-h-0 bg-slate-800/95 dark:bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-600/50 overflow-hidden flex flex-col max-h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-600/50">
         <h2 className="text-lg font-semibold text-white truncate">
           {countryName || iso3 || "Country"}
@@ -145,7 +145,7 @@ export function CountryPanel({
           </svg>
         </button>
       </div>
-      <div className="p-4 overflow-y-auto flex-1">
+      <div className="p-4 overflow-y-auto flex-1 min-h-0">
         {loading && (
           <p className="text-slate-400 text-sm">Loading statistics…</p>
         )}

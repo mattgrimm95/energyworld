@@ -122,7 +122,7 @@ export function ComparisonPanel({
   onRemove,
 }: Props) {
   return (
-    <div className="w-full h-full min-h-0 bg-slate-800/95 dark:bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-600/50 overflow-hidden flex flex-col">
+    <div className="w-full h-full min-h-0 max-h-full bg-slate-800/95 dark:bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-600/50 overflow-hidden flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-600/50">
         <h2 className="text-lg font-semibold text-white">
           Comparing {selectedCountries.length} Countries
@@ -169,7 +169,7 @@ export function ComparisonPanel({
           );
         })}
       </div>
-      <div className="p-4 overflow-y-auto flex-1 space-y-5">
+      <div className="p-4 overflow-y-auto flex-1 min-h-0 space-y-5">
         {(Object.keys(METRIC_LABELS) as MetricType[]).map((metric) => (
           <ComparisonChart
             key={metric}

@@ -244,7 +244,7 @@ export default function App() {
 
       {/* Side panel */}
       {selectedCountries.length > 0 && (
-        <div className="md:absolute md:top-4 md:right-4 md:w-96 md:max-w-none md:max-h-[calc(100vh-2rem)] w-full max-h-[45vh] md:max-h-none shrink-0 z-20">
+        <div className="md:absolute md:top-4 md:right-4 md:w-96 md:max-w-none md:max-h-[calc(100vh-2rem)] w-full max-h-[45vh] shrink-0 z-20 flex flex-col min-h-0">
           {showComparison ? (
             <ComparisonPanel
               statsMap={statsMap}
