@@ -84,12 +84,18 @@ function reserveLabel(r: EnergyReserve): string {
   </div>`;
 }
 
-function reserveRadius(r: EnergyReserve): number {
-  if (r.estimatedReserves == null) return 0.25;
-  if (r.type === "natural_gas") return Math.min(0.6, 0.2 + (r.estimatedReserves / 1800) * 0.4);
-  if (r.type === "coal") return Math.min(0.6, 0.2 + (r.estimatedReserves / 200) * 0.4);
-  return Math.min(0.6, 0.2 + (r.estimatedReserves / 50) * 0.4);
+function reserveRadius(r: EnergyReserve, enlarged: boolean): number {
+  const base = enlarged ? 1.5 : 1.0;
+  if (r.estimatedReserves == null) return 0.3 * base;
+  if (r.type === "natural_gas")
+    return Math.min(0.8, 0.3 + (r.estimatedReserves / 1800) * 0.5) * base;
+  if (r.type === "coal")
+    return Math.min(0.8, 0.3 + (r.estimatedReserves / 200) * 0.5) * base;
+  return Math.min(0.8, 0.3 + (r.estimatedReserves / 50) * 0.5) * base;
 }
+
+const NOOP_HOVER = () => {};
+const NOOP_CLICK = () => {};
 
 export function GlobeView({
   polygonsData,
@@ -107,13 +113,17 @@ export function GlobeView({
     (d: GlobeFeature) => {
       const iso = getISO3(d);
       if (selectedCountries.includes(iso)) return "rgba(34, 197, 94, 0.9)";
-      if (d === hoveredFeature) return "rgba(59, 130, 246, 0.8)";
+      if (!showReserves && d === hoveredFeature)
+        return "rgba(59, 130, 246, 0.8)";
       if (choroplethMetric) {
         return choroplethColor(choroplethMap.get(iso), choroplethMetric);
       }
+      if (showReserves) {
+        return isDark ? "rgba(30, 58, 138, 0.35)" : "rgba(100, 140, 200, 0.35)";
+      }
       return isDark ? "rgba(30, 58, 138, 0.7)" : "rgba(100, 140, 200, 0.7)";
     },
-    [hoveredFeature, selectedCountries, choroplethMetric, choroplethMap, isDark]
+    [hoveredFeature, selectedCountries, choroplethMetric, choroplethMap, isDark, showReserves]
   );
 
   const polygonSideColor = useCallback(() => "rgba(0, 0, 0, 0.1)", []);
@@ -122,14 +132,17 @@ export function GlobeView({
     [isDark]
   );
   const polygonAltitude = useCallback(
-    (d: GlobeFeature) =>
-      d === hoveredFeature || selectedCountries.includes(getISO3(d))
+    (d: GlobeFeature) => {
+      if (showReserves) return 0.01;
+      return d === hoveredFeature || selectedCountries.includes(getISO3(d))
         ? 0.08
-        : 0.04,
-    [hoveredFeature, selectedCountries]
+        : 0.04;
+    },
+    [hoveredFeature, selectedCountries, showReserves]
   );
   const polygonLabel = useCallback(
     (d: GlobeFeature) => {
+      if (showReserves) return "";
       const name = getCountryName(d);
       if (choroplethMetric) {
         const val = choroplethMap.get(getISO3(d));
@@ -137,7 +150,7 @@ export function GlobeView({
       }
       return name;
     },
-    [choroplethMetric, choroplethMap]
+    [choroplethMetric, choroplethMap, showReserves]
   );
 
   const pointsData = useMemo(
@@ -150,16 +163,28 @@ export function GlobeView({
     [showReserves, reserves]
   );
 
-  const pointColor = useCallback((d: object) => reservePointColor(d as EnergyReserve), []);
-  const pointLabel = useCallback((d: object) => reserveLabel(d as EnergyReserve), []);
-  const pointRadiusFn = useCallback((d: object) => reserveRadius(d as EnergyReserve), []);
-  const ringColor = useCallback(
-    (d: object) => {
-      const color = reservePointColor(d as EnergyReserve);
-      return (t: number) => `${color}${Math.round((1 - t) * 80).toString(16).padStart(2, "0")}`;
-    },
+  const pointColor = useCallback(
+    (d: object) => reservePointColor(d as EnergyReserve),
     []
   );
+  const pointLabel = useCallback(
+    (d: object) => reserveLabel(d as EnergyReserve),
+    []
+  );
+  const pointRadiusFn = useCallback(
+    (d: object) => reserveRadius(d as EnergyReserve, true),
+    []
+  );
+  const ringColor = useCallback((d: object) => {
+    const color = reservePointColor(d as EnergyReserve);
+    return (t: number) =>
+      `${color}${Math.round((1 - t) * 120)
+        .toString(16)
+        .padStart(2, "0")}`;
+  }, []);
+
+  const effectivePolygonHover = showReserves ? NOOP_HOVER : onPolygonHover;
+  const effectivePolygonClick = showReserves ? NOOP_CLICK : onPolygonClick;
 
   return (
     <div className="w-full h-full">
@@ -182,14 +207,14 @@ export function GlobeView({
         polygonStrokeColor={polygonStrokeColor}
         polygonAltitude={polygonAltitude}
         polygonLabel={polygonLabel}
-        onPolygonHover={onPolygonHover}
-        onPolygonClick={onPolygonClick}
+        onPolygonHover={effectivePolygonHover}
+        onPolygonClick={effectivePolygonClick}
         polygonsTransitionDuration={300}
         pointsData={pointsData}
         pointLat="lat"
         pointLng="lng"
         pointColor={pointColor}
-        pointAltitude={0.06}
+        pointAltitude={0.08}
         pointRadius={pointRadiusFn}
         pointLabel={pointLabel}
         pointsMerge={false}
@@ -198,9 +223,9 @@ export function GlobeView({
         ringLat="lat"
         ringLng="lng"
         ringColor={ringColor}
-        ringMaxRadius={1.5}
-        ringPropagationSpeed={0.8}
-        ringRepeatPeriod={2000}
+        ringMaxRadius={2.5}
+        ringPropagationSpeed={0.6}
+        ringRepeatPeriod={2500}
         rendererConfig={{ antialias: false }}
       />
     </div>

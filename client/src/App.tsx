@@ -216,11 +216,13 @@ export default function App() {
           <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
         </div>
 
-        {/* Shift-click hint */}
-        {selectedCountries.length === 1 && (
+        {/* Mode hint */}
+        {(selectedCountries.length === 1 || showReserves) && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
             <span className="text-xs text-slate-400 bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-full border border-slate-600/50">
-              Shift+click to compare countries
+              {showReserves
+                ? "Reserves mode — hover points for details. Toggle off to interact with countries."
+                : "Shift+click to compare countries"}
             </span>
           </div>
         )}
