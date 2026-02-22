@@ -111,7 +111,11 @@ export const COUNTRIES: CountryEntry[] = [
   { iso3: "ISL", name: "Iceland" },
 ];
 
-export const YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022];
+/** 2015–2022 from sources; 2023–2026 are extrapolated by the seed script. */
+export const YEARS = [
+  2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022,
+  2023, 2024, 2025, 2026,
+];
 
 // Energy consumption in TWh (primary energy), approximate real figures
 // Sources: IEA, BP Statistical Review, EIA

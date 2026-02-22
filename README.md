@@ -31,8 +31,10 @@ fnm env --use-on-cd --shell power-shell | Out-String | Invoke-Expression
 Verify:
 
 ```powershell
-node --version   # should show v20.x.x
+node --version   # You should see v20.20.0 (or another v20.x.x)
 ```
+
+After that you can run the app: from the project root run `npm run db:migrate`, `npm run db:seed`, then `npm run dev:server` and `npm run dev:client` in two terminals.
 
 ### 2. Install dependencies
 
@@ -82,7 +84,47 @@ Open http://localhost:5173 in your browser, rotate the globe, and click a countr
 | `npm run db:generate` | Generate Drizzle migrations from schema changes |
 | `npm run db:migrate` | Run database migrations |
 | `npm run db:seed` | Seed sample countries and stats |
+| `npm run db:fetch` | Fetch latest stats from World Bank API and upsert into DB |
 
 ## Data
 
-Seed data includes three countries (USA, China, Germany) with energy consumption, export, and import stats for 2022. To add real data, update the seed script and re-run `npm run db:seed`.
+### Source
+
+The seed data is **curated in code**, not downloaded at runtime. Values for **2015–2022** are based on real-world references:
+
+- **Energy consumption** (TWh): [IEA](https://www.iea.org/), [BP Statistical Review of World Energy](https://www.bp.com/statisticalreview), [EIA](https://www.eia.gov/).
+- **Exports / Imports** (billion USD): [World Bank Open Data](https://data.worldbank.org/) (trade in goods and services).
+
+**2023–2026** are **extrapolated** from 2022 using simple annual growth rates (about 1.5% for energy, 3% for trade) so the app can show a “latest year” and time series through 2026. They are illustrative, not official.
+
+### How it gets ingested
+
+1. **Seed data** lives in `server/src/db/seed-data.ts`: country list (ISO3 + name) and three metric objects (energy consumption, exports, imports) with one value per country per year for 2015–2022.
+2. **Seed script** `server/src/db/seed.ts` runs on `npm run db:seed`. It clears the SQLite DB, inserts all countries, then for each metric and country inserts one row per year. For years **after the last year in the file** (e.g. 2023–2026), it **extrapolates** from the last known value using the growth rates above, so no manual 2023–2026 figures are required in `seed-data.ts`.
+3. The result is written to **`server/data/energyworld.db`** (SQLite). The API reads from this file; nothing is fetched from external APIs when you run the app.
+
+To refresh or change data, edit `server/src/db/seed-data.ts` (and optionally the extrapolation logic in `seed.ts`), then run `npm run db:seed` again.
+
+### Pull latest from APIs
+
+You can refresh the database with **latest data from the World Bank** (no API key required):
+
+```powershell
+npm run db:fetch
+```
+
+This runs `server/src/db/fetch-latest.ts`, which:
+
+1. **Fetches** from the [World Bank API v2](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation) (public, no auth):
+   - **NE.EXP.GNFS.CD** — Exports of goods and services (current US$) → stored as billion USD
+   - **NE.IMP.GNFS.CD** — Imports of goods and services (current US$) → stored as billion USD
+   - **EG.USE.ELEC.KH** — Electric power consumption (kWh) → converted to TWh (note: this is *electricity* consumption, not total primary energy)
+2. **Upserts** into `server/data/energyworld.db`: for each (country, year, metric) in the response, it replaces any existing row then inserts the new value. Only countries already in the DB (from seed) are updated.
+
+**Optional env:** `FETCH_YEAR_START` and `FETCH_YEAR_END` (default: 2018 through current year). Example:
+
+```powershell
+$env:FETCH_YEAR_START="2020"; $env:FETCH_YEAR_END="2024"; npm run db:fetch
+```
+
+Run `npm run db:seed` first so the countries table is populated; then `npm run db:fetch` can fill or refresh stats from the World Bank.

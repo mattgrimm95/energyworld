@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { countriesRoutes } from "./routes/countries.js";
 import { statsRoutes } from "./routes/stats.js";
+import { reservesRoutes } from "./routes/reserves.js";
 
 const app = Fastify({ logger: true });
 
@@ -11,6 +12,7 @@ await app.register(cors, {
 
 await app.register(countriesRoutes, { prefix: "/api" });
 await app.register(statsRoutes, { prefix: "/api" });
+await app.register(reservesRoutes, { prefix: "/api" });
 
 const port = Number(process.env.PORT) || 3000;
 try {

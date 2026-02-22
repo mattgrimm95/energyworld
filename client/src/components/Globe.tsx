@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import Globe from "react-globe.gl";
-import type { MetricType, ChoroplethRow } from "../api/client";
+import type { MetricType, ChoroplethRow, EnergyReserve, ReserveType } from "../api/client";
+import { RESERVE_TYPE_COLORS, RESERVE_TYPE_LABELS } from "../api/client";
 
 const WORLD_GEOJSON =
   "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson";
@@ -60,7 +61,35 @@ type GlobeViewProps = {
   choroplethMetric: MetricType | null;
   choroplethMap: Map<string, number>;
   isDark: boolean;
+  reserves: EnergyReserve[];
+  showReserves: boolean;
 };
+
+function reservePointColor(r: EnergyReserve): string {
+  return RESERVE_TYPE_COLORS[r.type as ReserveType] ?? "#f59e0b";
+}
+
+function reserveLabel(r: EnergyReserve): string {
+  const typeLabel = RESERVE_TYPE_LABELS[r.type as ReserveType] ?? r.type;
+  const est =
+    r.estimatedReserves != null
+      ? `<div style="margin-top:2px;font-size:11px;opacity:0.85">${r.estimatedReserves.toLocaleString()} ${r.unit ?? ""}</div>`
+      : "";
+  const color = RESERVE_TYPE_COLORS[r.type as ReserveType] ?? "#f59e0b";
+  return `<div style="padding:6px 10px;background:rgba(15,23,42,0.92);border:1px solid ${color}40;border-radius:8px;backdrop-filter:blur(8px);min-width:120px">
+    <div style="font-size:12px;font-weight:600;color:#f8fafc">${r.name}</div>
+    <div style="font-size:10px;color:${color};margin-top:1px;text-transform:uppercase;letter-spacing:0.5px">${typeLabel}</div>
+    ${est}
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">${r.country}</div>
+  </div>`;
+}
+
+function reserveRadius(r: EnergyReserve): number {
+  if (r.estimatedReserves == null) return 0.25;
+  if (r.type === "natural_gas") return Math.min(0.6, 0.2 + (r.estimatedReserves / 1800) * 0.4);
+  if (r.type === "coal") return Math.min(0.6, 0.2 + (r.estimatedReserves / 200) * 0.4);
+  return Math.min(0.6, 0.2 + (r.estimatedReserves / 50) * 0.4);
+}
 
 export function GlobeView({
   polygonsData,
@@ -71,6 +100,8 @@ export function GlobeView({
   choroplethMetric,
   choroplethMap,
   isDark,
+  reserves,
+  showReserves,
 }: GlobeViewProps) {
   const polygonCapColor = useCallback(
     (d: GlobeFeature) => {
@@ -109,6 +140,27 @@ export function GlobeView({
     [choroplethMetric, choroplethMap]
   );
 
+  const pointsData = useMemo(
+    () => (showReserves ? reserves : []),
+    [showReserves, reserves]
+  );
+
+  const ringsData = useMemo(
+    () => (showReserves ? reserves : []),
+    [showReserves, reserves]
+  );
+
+  const pointColor = useCallback((d: object) => reservePointColor(d as EnergyReserve), []);
+  const pointLabel = useCallback((d: object) => reserveLabel(d as EnergyReserve), []);
+  const pointRadiusFn = useCallback((d: object) => reserveRadius(d as EnergyReserve), []);
+  const ringColor = useCallback(
+    (d: object) => {
+      const color = reservePointColor(d as EnergyReserve);
+      return (t: number) => `${color}${Math.round((1 - t) * 80).toString(16).padStart(2, "0")}`;
+    },
+    []
+  );
+
   return (
     <div className="w-full h-full">
       <Globe
@@ -133,6 +185,22 @@ export function GlobeView({
         onPolygonHover={onPolygonHover}
         onPolygonClick={onPolygonClick}
         polygonsTransitionDuration={300}
+        pointsData={pointsData}
+        pointLat="lat"
+        pointLng="lng"
+        pointColor={pointColor}
+        pointAltitude={0.06}
+        pointRadius={pointRadiusFn}
+        pointLabel={pointLabel}
+        pointsMerge={false}
+        pointsTransitionDuration={500}
+        ringsData={ringsData}
+        ringLat="lat"
+        ringLng="lng"
+        ringColor={ringColor}
+        ringMaxRadius={1.5}
+        ringPropagationSpeed={0.8}
+        ringRepeatPeriod={2000}
         rendererConfig={{ antialias: false }}
       />
     </div>

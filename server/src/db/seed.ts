@@ -1,4 +1,4 @@
-import { db, countries, stats } from "./index.js";
+import { db, countries, stats, energyReserves } from "./index.js";
 import {
   COUNTRIES,
   YEARS,
@@ -6,6 +6,7 @@ import {
   EXPORTS,
   IMPORTS,
 } from "./seed-data.js";
+import { ENERGY_RESERVES } from "./reserves-data.js";
 
 function seed() {
   db.delete(stats).run();
@@ -36,12 +37,30 @@ function seed() {
     { data: IMPORTS, type: "imports", unit: "billion USD" },
   ] as const;
 
+  const EXTRAPOLATE_GROWTH: Record<string, number> = {
+    energy_consumption: 1.015,
+    exports: 1.03,
+    imports: 1.03,
+  };
+
   for (const { data, type, unit } of metrics) {
+    const growth = EXTRAPOLATE_GROWTH[type] ?? 1.02;
     for (const [iso3, yearValues] of Object.entries(data)) {
       const countryId = idMap.get(iso3);
       if (!countryId) continue;
+      const sortedYears = Object.keys(yearValues)
+        .map(Number)
+        .filter((y) => !Number.isNaN(y))
+        .sort((a, b) => a - b);
+      const lastKnownYear = sortedYears[sortedYears.length - 1] ?? 2022;
+      const lastValue = yearValues[lastKnownYear] ?? 0;
       for (const year of YEARS) {
-        const value = yearValues[year];
+        let value = yearValues[year];
+        if (value == null && year > lastKnownYear) {
+          value = Math.round(
+            lastValue * Math.pow(growth, year - lastKnownYear)
+          );
+        }
         if (value == null) continue;
         rows.push({ countryId, year, metricType: type, value, unit });
       }
@@ -53,8 +72,14 @@ function seed() {
     db.insert(stats).values(rows.slice(i, i + BATCH)).run();
   }
 
+  // Seed energy reserves
+  db.delete(energyReserves).run();
+  for (const reserve of ENERGY_RESERVES) {
+    db.insert(energyReserves).values(reserve).run();
+  }
+
   console.log(
-    `Seed complete: ${idMap.size} countries, ${rows.length} stat rows`
+    `Seed complete: ${idMap.size} countries, ${rows.length} stat rows, ${ENERGY_RESERVES.length} reserves`
   );
 }
 

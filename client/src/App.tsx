@@ -9,10 +9,13 @@ import {
   fetchCountries,
   fetchStats,
   fetchChoropleth,
+  fetchReserves,
   type Country,
   type StatsResponse,
   type MetricType,
+  type EnergyReserve,
 } from "./api/client";
+import { ReservesToggle } from "./components/ReservesToggle";
 
 function useTheme() {
   const [isDark, setIsDark] = useState(() => {
@@ -62,10 +65,16 @@ export default function App() {
     useState<MetricType | null>(null);
   const [choroplethYear, setChoroplethYear] = useState(2022);
 
+  const [reserves, setReserves] = useState<EnergyReserve[]>([]);
+  const [showReserves, setShowReserves] = useState(false);
+
   useEffect(() => {
     loadGeoJSON();
     fetchCountries()
       .then(setCountries)
+      .catch(() => {});
+    fetchReserves()
+      .then(setReserves)
       .catch(() => {});
   }, [loadGeoJSON]);
 
@@ -184,6 +193,8 @@ export default function App() {
           choroplethMetric={choroplethMetric}
           choroplethMap={choroplethMap}
           isDark={isDark}
+          reserves={reserves}
+          showReserves={showReserves}
         />
 
         {/* Top toolbar */}
@@ -197,6 +208,10 @@ export default function App() {
             year={choroplethYear}
             onMetricChange={setChoroplethMetric}
             onYearChange={setChoroplethYear}
+          />
+          <ReservesToggle
+            active={showReserves}
+            onToggle={() => setShowReserves((v) => !v)}
           />
           <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
         </div>
