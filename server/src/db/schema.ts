@@ -1,20 +1,20 @@
-import { pgTable, serial, varchar, integer, decimal, text } from "drizzle-orm/pg-core";
+import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
 
-export const countries = pgTable("countries", {
-  id: serial("id").primaryKey(),
-  iso3: varchar("iso3", { length: 3 }).notNull().unique(),
-  name: varchar("name", { length: 255 }).notNull(),
+export const countries = sqliteTable("countries", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  iso3: text("iso3").notNull().unique(),
+  name: text("name").notNull(),
 });
 
-export const stats = pgTable("stats", {
-  id: serial("id").primaryKey(),
+export const stats = sqliteTable("stats", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   countryId: integer("country_id")
     .notNull()
     .references(() => countries.id, { onDelete: "cascade" }),
   year: integer("year").notNull(),
-  metricType: varchar("metric_type", { length: 64 }).notNull(),
-  value: decimal("value", { precision: 20, scale: 4 }).notNull(),
-  unit: varchar("unit", { length: 32 }),
+  metricType: text("metric_type").notNull(),
+  value: real("value").notNull(),
+  unit: text("unit"),
 });
 
 export type Country = typeof countries.$inferSelect;

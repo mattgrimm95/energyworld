@@ -1,19 +1,21 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
-import pg from "pg";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import Database from "better-sqlite3";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { mkdirSync } from "node:fs";
 
-const connectionString =
-  process.env.DATABASE_URL ?? "postgresql://energyworld:energyworld@localhost:5432/energyworld";
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dbPath = resolve(__dirname, "../../data/energyworld.db");
 
-const pool = new pg.Pool({ connectionString });
-const db = drizzle(pool);
+mkdirSync(dirname(dbPath), { recursive: true });
 
-async function run() {
-  await migrate(db, { migrationsFolder: "./drizzle" });
-  await pool.end();
-}
+const sqlite = new Database(dbPath);
+sqlite.pragma("journal_mode = WAL");
+sqlite.pragma("foreign_keys = ON");
 
-run().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+const db = drizzle(sqlite);
+
+migrate(db, { migrationsFolder: resolve(__dirname, "../../drizzle") });
+sqlite.close();
+console.log("Migrations complete.");
