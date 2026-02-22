@@ -3,6 +3,15 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=18" },
+  "overrides": {
+    "esbuild": ">=0.25.0",
+    "drizzle-kit": {
+      "esbuild": ">=0.25.0"
+    },
+    "vite": {
+      "esbuild": ">=0.25.0"
+    }
+  },
   "scripts": {
     "dev:client": "npm run dev --workspace=client",
     "dev:server": "npm run dev --workspace=server",
@@ -14,8 +23,8 @@
     "db:fetch": "npm run db:fetch --workspace=server",
     "db:studio": "npm run db:studio --workspace=server"
   },
-  "workspaces": [
-    "client",
-    "server"
-  ]
+  "dependencies": {
+    "recharts": "^3.7.0"
+  },
+  "workspaces": ["client", "server"]
 }

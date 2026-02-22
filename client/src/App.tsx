@@ -75,7 +75,7 @@ export default function App() {
       .catch(() => {});
     fetchReserves()
       .then(setReserves)
-      .catch(() => {});
+      .catch(() => setReserves([]));
   }, [loadGeoJSON]);
 
   // Fetch choropleth data when metric/year changes
