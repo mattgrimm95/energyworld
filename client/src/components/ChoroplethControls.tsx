@@ -1,19 +1,10 @@
-import { METRIC_LABELS } from "../api/client";
 import type { MetricType } from "../api/client";
-
-const ENERGY_TRADE_METRICS: MetricType[] = [
-  "energy_consumption",
-  "exports",
-  "imports",
-];
-const MINERAL_METRICS: MetricType[] = [
-  "copper_production",
-  "lithium_production",
-  "cobalt_production",
-  "rare_earth_production",
-  "silicon_production",
-  "nickel_production",
-];
+import {
+  METRIC_LABELS,
+  ENERGY_TRADE_METRICS,
+  MINERAL_METRICS,
+  DATA_YEARS,
+} from "../api/client";
 
 type Props = {
   metric: MetricType | null;
@@ -22,7 +13,8 @@ type Props = {
   onYearChange: (year: number) => void;
 };
 
-const YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022];
+const selectClass =
+  "bg-slate-700 text-slate-100 text-sm rounded border border-slate-600 outline-none cursor-pointer focus:ring-1 focus:ring-slate-500 [&>option]:bg-slate-800 [&>option]:text-slate-100";
 
 export function ChoroplethControls({
   metric,
@@ -31,7 +23,7 @@ export function ChoroplethControls({
   onYearChange,
 }: Props) {
   return (
-    <div className="flex items-center gap-2 bg-slate-800/80 dark:bg-slate-800/80 backdrop-blur border border-slate-600/50 rounded-lg px-3 py-1.5 shadow-lg">
+    <div className="flex items-center gap-2 bg-slate-800/80 backdrop-blur border border-slate-600/50 rounded-lg px-3 py-1.5 shadow-lg">
       <select
         value={metric ?? ""}
         onChange={(e) =>
@@ -39,7 +31,7 @@ export function ChoroplethControls({
             e.target.value ? (e.target.value as MetricType) : null
           )
         }
-        className="bg-slate-700 text-slate-100 text-sm rounded border border-slate-600 outline-none cursor-pointer focus:ring-1 focus:ring-slate-500 [&>option]:bg-slate-800 [&>option]:text-slate-100"
+        className={selectClass}
       >
         <option value="">No choropleth</option>
         <optgroup label="Energy & Trade">
@@ -61,9 +53,9 @@ export function ChoroplethControls({
         <select
           value={year}
           onChange={(e) => onYearChange(Number(e.target.value))}
-          className="bg-slate-700 text-slate-100 text-sm rounded border border-slate-600 outline-none cursor-pointer focus:ring-1 focus:ring-slate-500 [&>option]:bg-slate-800 [&>option]:text-slate-100"
+          className={selectClass}
         >
-          {YEARS.map((y) => (
+          {DATA_YEARS.map((y) => (
             <option key={y} value={y}>
               {y}
             </option>

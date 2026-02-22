@@ -47,7 +47,7 @@ export async function statsRoutes(
     const yearFilter = yearParam ? parseInt(yearParam, 10) : null;
 
     const conditions = [eq(stats.countryId, country.id)];
-    if (yearFilter && !Number.isNaN(yearFilter)) {
+    if (yearFilter != null && !Number.isNaN(yearFilter)) {
       conditions.push(eq(stats.year, yearFilter));
     }
 
@@ -83,6 +83,9 @@ export async function statsRoutes(
     }
 
     const year = yearParam ? parseInt(yearParam, 10) : 2022;
+    if (Number.isNaN(year)) {
+      return reply.status(400).send({ error: "Invalid year" });
+    }
 
     const rows = await db
       .select({

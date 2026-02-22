@@ -21,26 +21,25 @@ export async function pipelinesRoutes(
 
     let rows;
     if (type && VALID_TYPES.includes(type as (typeof VALID_TYPES)[number])) {
-      rows = await db
-        .select()
-        .from(pipelines)
-        .where(eq(pipelines.type, type));
+      rows = await db.select().from(pipelines).where(eq(pipelines.type, type));
     } else if (
       status &&
       VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])
     ) {
-      rows = await db
-        .select()
-        .from(pipelines)
-        .where(eq(pipelines.status, status));
+      rows = await db.select().from(pipelines).where(eq(pipelines.status, status));
     } else {
       rows = await db.select().from(pipelines);
     }
 
-    const parsed = rows.map((r) => ({
-      ...r,
-      path: JSON.parse(r.path) as [number, number][],
-    }));
+    const parsed = rows.map((r) => {
+      let path: [number, number][] = [];
+      try {
+        path = JSON.parse(r.path) as [number, number][];
+      } catch {
+        app.log.warn(`Invalid path JSON for pipeline ${r.id} (${r.name})`);
+      }
+      return { ...r, path };
+    });
 
     return reply.send(parsed);
   });

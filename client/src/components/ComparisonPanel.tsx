@@ -9,7 +9,7 @@ import {
   Legend,
 } from "recharts";
 import type { StatsResponse, MetricType } from "../api/client";
-import { METRIC_LABELS, METRIC_UNITS } from "../api/client";
+import { METRIC_LABELS, METRIC_UNITS, ALL_METRICS } from "../api/client";
 
 type Props = {
   statsMap: Map<string, StatsResponse>;
@@ -18,7 +18,7 @@ type Props = {
   onRemove: (iso3: string) => void;
 };
 
-const COLORS = [
+const COMPARISON_COLORS = [
   "#22c55e",
   "#3b82f6",
   "#f59e0b",
@@ -60,17 +60,12 @@ function ComparisonChart({
   return (
     <div>
       <h3 className="text-sm font-medium text-slate-300 mb-2">
-        {label}{" "}
-        <span className="text-slate-500 font-normal">({unit})</span>
+        {label} <span className="text-slate-500 font-normal">({unit})</span>
       </h3>
       <ResponsiveContainer width="100%" height={180}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis
-            dataKey="year"
-            tick={{ fontSize: 11, fill: "#94a3b8" }}
-            tickLine={false}
-          />
+          <XAxis dataKey="year" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} />
           <YAxis
             tick={{ fontSize: 11, fill: "#94a3b8" }}
             tickLine={false}
@@ -93,9 +88,7 @@ function ComparisonChart({
             ]}
           />
           <Legend
-            formatter={(value: string) =>
-              statsMap.get(value)?.country.name ?? value
-            }
+            formatter={(value: string) => statsMap.get(value)?.country.name ?? value}
             wrapperStyle={{ fontSize: 11 }}
           />
           {selectedCountries.map((iso3, i) => (
@@ -103,7 +96,7 @@ function ComparisonChart({
               key={iso3}
               type="monotone"
               dataKey={iso3}
-              stroke={COLORS[i % COLORS.length]}
+              stroke={COMPARISON_COLORS[i % COMPARISON_COLORS.length]}
               strokeWidth={2}
               dot={{ r: 2 }}
               connectNulls
@@ -122,7 +115,7 @@ export function ComparisonPanel({
   onRemove,
 }: Props) {
   return (
-    <div className="w-full h-full min-h-0 max-h-full bg-slate-800/95 dark:bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-600/50 overflow-hidden flex flex-col">
+    <div className="w-full h-full min-h-0 max-h-full bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-600/50 overflow-hidden flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-600/50">
         <h2 className="text-lg font-semibold text-white">
           Comparing {selectedCountries.length} Countries
@@ -133,18 +126,8 @@ export function ComparisonPanel({
           className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-600/50 transition-colors"
           aria-label="Close"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
@@ -155,14 +138,14 @@ export function ComparisonPanel({
             <span
               key={iso3}
               className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-white"
-              style={{ backgroundColor: COLORS[i % COLORS.length] + "33", borderColor: COLORS[i % COLORS.length], borderWidth: 1 }}
+              style={{
+                backgroundColor: COMPARISON_COLORS[i % COMPARISON_COLORS.length] + "33",
+                borderColor: COMPARISON_COLORS[i % COMPARISON_COLORS.length],
+                borderWidth: 1,
+              }}
             >
               {name}
-              <button
-                type="button"
-                onClick={() => onRemove(iso3)}
-                className="ml-0.5 hover:text-red-400"
-              >
+              <button type="button" onClick={() => onRemove(iso3)} className="ml-0.5 hover:text-red-400">
                 ×
               </button>
             </span>
@@ -170,7 +153,7 @@ export function ComparisonPanel({
         })}
       </div>
       <div className="p-4 overflow-y-auto flex-1 min-h-0 space-y-5">
-        {(Object.keys(METRIC_LABELS) as MetricType[]).map((metric) => (
+        {ALL_METRICS.map((metric) => (
           <ComparisonChart
             key={metric}
             metric={metric}

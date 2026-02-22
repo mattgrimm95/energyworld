@@ -4,9 +4,7 @@ import type {
   MetricType,
   ChoroplethRow,
   EnergyReserve,
-  ReserveType,
   Pipeline,
-  PipelineType,
 } from "../api/client";
 import {
   RESERVE_TYPE_COLORS,
@@ -46,6 +44,8 @@ export function getCountryName(d: GlobeFeature): string {
   return d.properties?.name ?? d.properties?.NAME ?? getISO3(d) ?? "Unknown";
 }
 
+// ── Choropleth ──
+
 const CHOROPLETH_SCALES: Record<MetricType, [number, number]> = {
   energy_consumption: [0, 45000],
   exports: [0, 3600],
@@ -58,10 +58,7 @@ const CHOROPLETH_SCALES: Record<MetricType, [number, number]> = {
   nickel_production: [0, 1600],
 };
 
-function choroplethColor(
-  value: number | undefined,
-  metric: MetricType
-): string {
+function choroplethColor(value: number | undefined, metric: MetricType): string {
   if (value == null) return "rgba(30, 41, 59, 0.5)";
   const [min, max] = CHOROPLETH_SCALES[metric];
   const t = Math.min(1, Math.max(0, (value - min) / (max - min)));
@@ -71,32 +68,19 @@ function choroplethColor(
   return `rgba(${r}, ${g}, ${b}, 0.85)`;
 }
 
-type GlobeViewProps = {
-  polygonsData: GlobeFeature[];
-  hoveredFeature: GlobeFeature | null;
-  selectedCountries: string[];
-  onPolygonHover: (feature: GlobeFeature | null) => void;
-  onPolygonClick: (feature: GlobeFeature, event: MouseEvent) => void;
-  choroplethMetric: MetricType | null;
-  choroplethMap: Map<string, number>;
-  isDark: boolean;
-  reserves: EnergyReserve[];
-  showReserves: boolean;
-  pipelines: Pipeline[];
-  showPipelines: boolean;
-};
+// ── Reserve helpers ──
 
 function reservePointColor(r: EnergyReserve): string {
-  return RESERVE_TYPE_COLORS[r.type as ReserveType] ?? "#f59e0b";
+  return RESERVE_TYPE_COLORS[r.type] ?? "#f59e0b";
 }
 
 function reserveLabel(r: EnergyReserve): string {
-  const typeLabel = RESERVE_TYPE_LABELS[r.type as ReserveType] ?? r.type;
+  const typeLabel = RESERVE_TYPE_LABELS[r.type] ?? r.type;
+  const color = reservePointColor(r);
   const est =
     r.estimatedReserves != null
       ? `<div style="margin-top:2px;font-size:11px;opacity:0.85">${r.estimatedReserves.toLocaleString()} ${r.unit ?? ""}</div>`
       : "";
-  const color = RESERVE_TYPE_COLORS[r.type as ReserveType] ?? "#f59e0b";
   return `<div style="padding:6px 10px;background:rgba(15,23,42,0.92);border:1px solid ${color}40;border-radius:8px;backdrop-filter:blur(8px);min-width:120px">
     <div style="font-size:12px;font-weight:600;color:#f8fafc">${r.name}</div>
     <div style="font-size:10px;color:${color};margin-top:1px;text-transform:uppercase;letter-spacing:0.5px">${typeLabel}</div>
@@ -117,16 +101,22 @@ function reserveRadius(r: EnergyReserve, enlarged: boolean): number {
 
 // ── Pipeline helpers ──
 
+const PIPELINE_STATUS_DOT_COLORS: Record<string, string> = {
+  operational: "#22c55e",
+  under_construction: "#eab308",
+  decommissioned: "#6b7280",
+  planned: "#60a5fa",
+};
+
 function pipelineColor(p: Pipeline): string {
-  return PIPELINE_TYPE_COLORS[p.type as PipelineType] ?? "#ef4444";
+  return PIPELINE_TYPE_COLORS[p.type] ?? "#ef4444";
 }
 
 function pipelineLabel(p: Pipeline): string {
   const color = pipelineColor(p);
-  const typeLabel = PIPELINE_TYPE_LABELS[p.type as PipelineType] ?? p.type;
-  const statusLabel =
-    PIPELINE_STATUS_LABELS[p.status as keyof typeof PIPELINE_STATUS_LABELS] ??
-    p.status;
+  const typeLabel = PIPELINE_TYPE_LABELS[p.type] ?? p.type;
+  const statusLabel = PIPELINE_STATUS_LABELS[p.status] ?? p.status;
+  const statusDot = PIPELINE_STATUS_DOT_COLORS[p.status] ?? "#60a5fa";
   const cap =
     p.capacityValue != null
       ? `<div style="margin-top:2px;font-size:11px;opacity:0.85">${p.capacityValue.toLocaleString()} ${p.capacityUnit ?? ""}</div>`
@@ -136,14 +126,6 @@ function pipelineLabel(p: Pipeline): string {
       ? `<div style="font-size:10px;opacity:0.7">${p.lengthKm.toLocaleString()} km</div>`
       : "";
   const yr = p.yearBuilt ? ` (${p.yearBuilt})` : "";
-  const statusDot =
-    p.status === "operational"
-      ? "#22c55e"
-      : p.status === "under_construction"
-        ? "#eab308"
-        : p.status === "decommissioned"
-          ? "#6b7280"
-          : "#60a5fa";
 
   return `<div style="padding:6px 10px;background:rgba(15,23,42,0.92);border:1px solid ${color}40;border-radius:8px;backdrop-filter:blur(8px);min-width:140px;pointer-events:none">
     <div style="font-size:12px;font-weight:600;color:#f8fafc">${p.name}</div>
@@ -163,8 +145,44 @@ function pipelineStroke(p: Pipeline): number {
   return 3.5;
 }
 
-const NOOP_HOVER = () => {};
-const NOOP_CLICK = () => {};
+function pipelineDashLength(p: Pipeline): number {
+  if (p.status === "planned" || p.status === "under_construction") return 0.3;
+  if (p.status === "decommissioned") return 0.2;
+  return 1;
+}
+
+function pipelineDashGap(p: Pipeline): number {
+  if (p.status === "planned" || p.status === "under_construction") return 0.15;
+  if (p.status === "decommissioned") return 0.1;
+  return 0.05;
+}
+
+function pipelineAlphaColor(p: Pipeline): string {
+  const base = pipelineColor(p);
+  if (p.status === "decommissioned") return `${base}99`;
+  if (p.status === "planned" || p.status === "under_construction") return `${base}cc`;
+  return base;
+}
+
+// ── Noop handlers for overlay mode ──
+const NOOP = () => {};
+
+// ── Props ──
+
+type GlobeViewProps = {
+  polygonsData: GlobeFeature[];
+  hoveredFeature: GlobeFeature | null;
+  selectedCountries: string[];
+  onPolygonHover: (feature: GlobeFeature | null) => void;
+  onPolygonClick: (feature: GlobeFeature, event: MouseEvent) => void;
+  choroplethMetric: MetricType | null;
+  choroplethMap: Map<string, number>;
+  isDark: boolean;
+  reserves: EnergyReserve[];
+  showReserves: boolean;
+  pipelines: Pipeline[];
+  showPipelines: boolean;
+};
 
 export function GlobeView({
   polygonsData,
@@ -186,26 +204,12 @@ export function GlobeView({
     (d: GlobeFeature) => {
       const iso = getISO3(d);
       if (selectedCountries.includes(iso)) return "rgba(34, 197, 94, 0.9)";
-      if (!overlayActive && d === hoveredFeature)
-        return "rgba(59, 130, 246, 0.8)";
-      if (choroplethMetric) {
-        return choroplethColor(choroplethMap.get(iso), choroplethMetric);
-      }
-      if (overlayActive) {
-        return isDark
-          ? "rgba(30, 58, 138, 0.35)"
-          : "rgba(100, 140, 200, 0.35)";
-      }
-      return isDark ? "rgba(30, 58, 138, 0.7)" : "rgba(100, 140, 200, 0.7)";
+      if (!overlayActive && d === hoveredFeature) return "rgba(59, 130, 246, 0.8)";
+      if (choroplethMetric) return choroplethColor(choroplethMap.get(iso), choroplethMetric);
+      const opacity = overlayActive ? 0.35 : 0.7;
+      return isDark ? `rgba(30, 58, 138, ${opacity})` : `rgba(100, 140, 200, ${opacity})`;
     },
-    [
-      hoveredFeature,
-      selectedCountries,
-      choroplethMetric,
-      choroplethMap,
-      isDark,
-      overlayActive,
-    ]
+    [hoveredFeature, selectedCountries, choroplethMetric, choroplethMap, isDark, overlayActive]
   );
 
   const polygonSideColor = useCallback(() => "rgba(0, 0, 0, 0.1)", []);
@@ -216,9 +220,7 @@ export function GlobeView({
   const polygonAltitude = useCallback(
     (d: GlobeFeature) => {
       if (overlayActive) return 0.01;
-      return d === hoveredFeature || selectedCountries.includes(getISO3(d))
-        ? 0.08
-        : 0.04;
+      return d === hoveredFeature || selectedCountries.includes(getISO3(d)) ? 0.08 : 0.04;
     },
     [hoveredFeature, selectedCountries, overlayActive]
   );
@@ -236,84 +238,26 @@ export function GlobeView({
   );
 
   // ── Reserve layers ──
-  const pointsData = useMemo(
-    () => (showReserves ? reserves : []),
-    [showReserves, reserves]
-  );
-  const ringsData = useMemo(
-    () => (showReserves ? reserves : []),
-    [showReserves, reserves]
-  );
+  const pointsData = useMemo(() => (showReserves ? reserves : []), [showReserves, reserves]);
+  const ringsData = pointsData;
 
-  const pointColor = useCallback(
-    (d: object) => reservePointColor(d as EnergyReserve),
-    []
-  );
-  const pointLabel = useCallback(
-    (d: object) => reserveLabel(d as EnergyReserve),
-    []
-  );
-  const pointRadiusFn = useCallback(
-    (d: object) => reserveRadius(d as EnergyReserve, true),
-    []
-  );
+  const pointColor = useCallback((d: object) => reservePointColor(d as EnergyReserve), []);
+  const pointLabel = useCallback((d: object) => reserveLabel(d as EnergyReserve), []);
+  const pointRadiusFn = useCallback((d: object) => reserveRadius(d as EnergyReserve, true), []);
   const ringColor = useCallback((d: object) => {
     const color = reservePointColor(d as EnergyReserve);
-    return (t: number) =>
-      `${color}${Math.round((1 - t) * 120)
-        .toString(16)
-        .padStart(2, "0")}`;
+    return (t: number) => `${color}${Math.round((1 - t) * 120).toString(16).padStart(2, "0")}`;
   }, []);
 
   // ── Pipeline layers ──
-  const pathsData = useMemo(
-    () => (showPipelines ? pipelines : []),
-    [showPipelines, pipelines]
-  );
+  const pathsData = useMemo(() => (showPipelines ? pipelines : []), [showPipelines, pipelines]);
 
   const pathPointsFn = useCallback((d: object) => (d as Pipeline).path, []);
-  const pathColorFn = useCallback(
-    (d: object) => {
-      const p = d as Pipeline;
-      const base = pipelineColor(p);
-      if (p.status === "decommissioned") return `${base}99`;
-      if (p.status === "planned" || p.status === "under_construction")
-        return `${base}cc`;
-      return base;
-    },
-    []
-  );
-  const pathLabelFn = useCallback(
-    (d: object) => pipelineLabel(d as Pipeline),
-    []
-  );
-  const pathStrokeFn = useCallback(
-    (d: object) => pipelineStroke(d as Pipeline),
-    []
-  );
-  const pathDashLength = useCallback(
-    (d: object) => {
-      const p = d as Pipeline;
-      if (p.status === "planned" || p.status === "under_construction")
-        return 0.3;
-      if (p.status === "decommissioned") return 0.2;
-      return 1;
-    },
-    []
-  );
-  const pathDashGap = useCallback(
-    (d: object) => {
-      const p = d as Pipeline;
-      if (p.status === "planned" || p.status === "under_construction")
-        return 0.15;
-      if (p.status === "decommissioned") return 0.1;
-      return 0.05;
-    },
-    []
-  );
-
-  const effectivePolygonHover = overlayActive ? NOOP_HOVER : onPolygonHover;
-  const effectivePolygonClick = overlayActive ? NOOP_CLICK : onPolygonClick;
+  const pathColorFn = useCallback((d: object) => pipelineAlphaColor(d as Pipeline), []);
+  const pathLabelFn = useCallback((d: object) => pipelineLabel(d as Pipeline), []);
+  const pathStrokeFn = useCallback((d: object) => pipelineStroke(d as Pipeline), []);
+  const pathDashLengthFn = useCallback((d: object) => pipelineDashLength(d as Pipeline), []);
+  const pathDashGapFn = useCallback((d: object) => pipelineDashGap(d as Pipeline), []);
 
   return (
     <div className="w-full h-full">
@@ -324,11 +268,7 @@ export function GlobeView({
             : "//unpkg.com/three-globe/example/img/earth-day.jpg"
         }
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        backgroundImageUrl={
-          isDark
-            ? "//unpkg.com/three-globe/example/img/night-sky.png"
-            : undefined
-        }
+        backgroundImageUrl={isDark ? "//unpkg.com/three-globe/example/img/night-sky.png" : undefined}
         backgroundColor={isDark ? "#0f172a" : "#dbeafe"}
         polygonsData={polygonsData}
         polygonCapColor={polygonCapColor}
@@ -336,8 +276,8 @@ export function GlobeView({
         polygonStrokeColor={polygonStrokeColor}
         polygonAltitude={polygonAltitude}
         polygonLabel={polygonLabel}
-        onPolygonHover={effectivePolygonHover}
-        onPolygonClick={effectivePolygonClick}
+        onPolygonHover={overlayActive ? NOOP : onPolygonHover}
+        onPolygonClick={overlayActive ? NOOP : onPolygonClick}
         polygonsTransitionDuration={300}
         pointsData={pointsData}
         pointLat="lat"
@@ -361,8 +301,8 @@ export function GlobeView({
         pathColor={pathColorFn}
         pathLabel={pathLabelFn}
         pathStroke={pathStrokeFn}
-        pathDashLength={pathDashLength}
-        pathDashGap={pathDashGap}
+        pathDashLength={pathDashLengthFn}
+        pathDashGap={pathDashGapFn}
         pathDashAnimateTime={showPipelines ? 8000 : 0}
         pathTransitionDuration={600}
         pathResolution={4}
@@ -372,11 +312,11 @@ export function GlobeView({
   );
 }
 
+// ── Globe data hook ──
+
 export function useGlobeData() {
   const [polygonsData, setPolygonsData] = useState<GlobeFeature[]>([]);
-  const [hoveredFeature, setHoveredFeature] = useState<GlobeFeature | null>(
-    null
-  );
+  const [hoveredFeature, setHoveredFeature] = useState<GlobeFeature | null>(null);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [globeLoading, setGlobeLoading] = useState(true);
   const [globeError, setGlobeError] = useState<string | null>(null);
@@ -384,9 +324,7 @@ export function useGlobeData() {
 
   const choroplethMap = useMemo(() => {
     const m = new Map<string, number>();
-    for (const row of choroplethData) {
-      m.set(row.iso3, row.value);
-    }
+    for (const row of choroplethData) m.set(row.iso3, row.value);
     return m;
   }, [choroplethData]);
 
@@ -400,8 +338,7 @@ export function useGlobeData() {
       const features: GlobeFeature[] = json.features ?? json;
       setPolygonsData(Array.isArray(features) ? features : []);
     } catch (e) {
-      const msg =
-        e instanceof Error ? e.message : "Failed to load world map";
+      const msg = e instanceof Error ? e.message : "Failed to load world map";
       setGlobeError(msg);
       console.error("Failed to load world GeoJSON", e);
     } finally {
@@ -409,26 +346,24 @@ export function useGlobeData() {
     }
   }, []);
 
-  const onPolygonHover = useCallback((f: GlobeFeature | null) => {
-    setHoveredFeature(f);
-  }, []);
-
-  const onPolygonClick = useCallback(
-    (f: GlobeFeature, event: MouseEvent) => {
-      const iso = getISO3(f);
-      if (!iso) return;
-      if (event.shiftKey) {
-        setSelectedCountries((prev) =>
-          prev.includes(iso) ? prev.filter((c) => c !== iso) : [...prev, iso]
-        );
-      } else {
-        setSelectedCountries((prev) =>
-          prev.length === 1 && prev[0] === iso ? [] : [iso]
-        );
-      }
-    },
+  const onPolygonHover = useCallback(
+    (f: GlobeFeature | null) => setHoveredFeature(f),
     []
   );
+
+  const onPolygonClick = useCallback((f: GlobeFeature, event: MouseEvent) => {
+    const iso = getISO3(f);
+    if (!iso) return;
+    if (event.shiftKey) {
+      setSelectedCountries((prev) =>
+        prev.includes(iso) ? prev.filter((c) => c !== iso) : [...prev, iso]
+      );
+    } else {
+      setSelectedCountries((prev) =>
+        prev.length === 1 && prev[0] === iso ? [] : [iso]
+      );
+    }
+  }, []);
 
   return {
     polygonsData,

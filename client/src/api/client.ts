@@ -1,5 +1,7 @@
 const API_BASE = "/api";
 
+// ── Types ──
+
 export type Country = {
   id: number;
   iso3: string;
@@ -41,7 +43,19 @@ export type MetricType =
   | "silicon_production"
   | "nickel_production";
 
-export type ReserveType = "oil" | "natural_gas" | "coal" | "oil_sands" | "shale";
+export type ReserveType =
+  | "oil"
+  | "natural_gas"
+  | "coal"
+  | "oil_sands"
+  | "shale";
+
+export type PipelineType = "oil" | "gas" | "products" | "lng";
+export type PipelineStatus =
+  | "operational"
+  | "planned"
+  | "decommissioned"
+  | "under_construction";
 
 export type EnergyReserve = {
   id: number;
@@ -57,21 +71,42 @@ export type EnergyReserve = {
   year: number | null;
 };
 
-export const RESERVE_TYPE_LABELS: Record<ReserveType, string> = {
-  oil: "Oil",
-  natural_gas: "Natural Gas",
-  coal: "Coal",
-  oil_sands: "Oil Sands",
-  shale: "Shale / Tight Oil",
+export type Pipeline = {
+  id: number;
+  name: string;
+  type: PipelineType;
+  status: PipelineStatus;
+  capacityValue: number | null;
+  capacityUnit: string | null;
+  lengthKm: number | null;
+  countries: string;
+  yearBuilt: number | null;
+  path: [number, number][];
 };
 
-export const RESERVE_TYPE_COLORS: Record<ReserveType, string> = {
-  oil: "#f59e0b",
-  natural_gas: "#06b6d4",
-  coal: "#78716c",
-  oil_sands: "#d97706",
-  shale: "#a855f7",
-};
+// ── Metric constants (single source of truth) ──
+
+export const ENERGY_TRADE_METRICS: MetricType[] = [
+  "energy_consumption",
+  "exports",
+  "imports",
+];
+
+export const MINERAL_METRICS: MetricType[] = [
+  "copper_production",
+  "lithium_production",
+  "cobalt_production",
+  "rare_earth_production",
+  "silicon_production",
+  "nickel_production",
+];
+
+export const ALL_METRICS: MetricType[] = [
+  ...ENERGY_TRADE_METRICS,
+  ...MINERAL_METRICS,
+];
+
+export const DATA_YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022];
 
 export const METRIC_LABELS: Record<MetricType, string> = {
   energy_consumption: "Energy Consumption",
@@ -96,6 +131,61 @@ export const METRIC_UNITS: Record<MetricType, string> = {
   silicon_production: "kt",
   nickel_production: "kt",
 };
+
+export const METRIC_COLORS: Record<MetricType, string> = {
+  energy_consumption: "#f59e0b",
+  exports: "#22c55e",
+  imports: "#3b82f6",
+  copper_production: "#d97706",
+  lithium_production: "#06b6d4",
+  cobalt_production: "#8b5cf6",
+  rare_earth_production: "#ec4899",
+  silicon_production: "#64748b",
+  nickel_production: "#14b8a6",
+};
+
+// ── Reserve constants ──
+
+export const RESERVE_TYPE_LABELS: Record<ReserveType, string> = {
+  oil: "Oil",
+  natural_gas: "Natural Gas",
+  coal: "Coal",
+  oil_sands: "Oil Sands",
+  shale: "Shale / Tight Oil",
+};
+
+export const RESERVE_TYPE_COLORS: Record<ReserveType, string> = {
+  oil: "#f59e0b",
+  natural_gas: "#06b6d4",
+  coal: "#78716c",
+  oil_sands: "#d97706",
+  shale: "#a855f7",
+};
+
+// ── Pipeline constants ──
+
+export const PIPELINE_TYPE_LABELS: Record<PipelineType, string> = {
+  oil: "Oil",
+  gas: "Natural Gas",
+  products: "Refined Products",
+  lng: "LNG",
+};
+
+export const PIPELINE_TYPE_COLORS: Record<PipelineType, string> = {
+  oil: "#ef4444",
+  gas: "#3b82f6",
+  products: "#22c55e",
+  lng: "#a855f7",
+};
+
+export const PIPELINE_STATUS_LABELS: Record<PipelineStatus, string> = {
+  operational: "Operational",
+  planned: "Planned",
+  decommissioned: "Decommissioned",
+  under_construction: "Under Construction",
+};
+
+// ── API fetchers ──
 
 export async function fetchCountries(): Promise<Country[]> {
   const res = await fetch(`${API_BASE}/countries`);
@@ -137,49 +227,6 @@ export async function fetchReserves(
   if (!res.ok) throw new Error("Failed to fetch reserves");
   return res.json();
 }
-
-// ── Pipelines ──
-
-export type PipelineType = "oil" | "gas" | "products" | "lng";
-export type PipelineStatus =
-  | "operational"
-  | "planned"
-  | "decommissioned"
-  | "under_construction";
-
-export type Pipeline = {
-  id: number;
-  name: string;
-  type: PipelineType;
-  status: PipelineStatus;
-  capacityValue: number | null;
-  capacityUnit: string | null;
-  lengthKm: number | null;
-  countries: string;
-  yearBuilt: number | null;
-  path: [number, number][];
-};
-
-export const PIPELINE_TYPE_LABELS: Record<PipelineType, string> = {
-  oil: "Oil",
-  gas: "Natural Gas",
-  products: "Refined Products",
-  lng: "LNG",
-};
-
-export const PIPELINE_TYPE_COLORS: Record<PipelineType, string> = {
-  oil: "#ef4444",
-  gas: "#3b82f6",
-  products: "#22c55e",
-  lng: "#a855f7",
-};
-
-export const PIPELINE_STATUS_LABELS: Record<PipelineStatus, string> = {
-  operational: "Operational",
-  planned: "Planned",
-  decommissioned: "Decommissioned",
-  under_construction: "Under Construction",
-};
 
 export async function fetchPipelines(
   type?: PipelineType

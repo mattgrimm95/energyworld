@@ -31,10 +31,6 @@ export const energyReserves = sqliteTable("energy_reserves", {
   year: integer("year"),
 });
 
-export type Country = typeof countries.$inferSelect;
-export type NewCountry = typeof countries.$inferInsert;
-export type Stat = typeof stats.$inferSelect;
-export type NewStat = typeof stats.$inferInsert;
 export const pipelines = sqliteTable("pipelines", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -48,6 +44,10 @@ export const pipelines = sqliteTable("pipelines", {
   path: text("path").notNull(),
 });
 
+export type Country = typeof countries.$inferSelect;
+export type NewCountry = typeof countries.$inferInsert;
+export type Stat = typeof stats.$inferSelect;
+export type NewStat = typeof stats.$inferInsert;
 export type EnergyReserve = typeof energyReserves.$inferSelect;
 export type NewEnergyReserve = typeof energyReserves.$inferInsert;
 export type Pipeline = typeof pipelines.$inferSelect;

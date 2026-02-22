@@ -5,6 +5,8 @@ import { ComparisonPanel } from "./components/ComparisonPanel";
 import { CountrySearch } from "./components/CountrySearch";
 import { ChoroplethControls } from "./components/ChoroplethControls";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { ReservesToggle } from "./components/ReservesToggle";
+import { PipelinesToggle } from "./components/PipelinesToggle";
 import {
   fetchCountries,
   fetchStats,
@@ -17,8 +19,6 @@ import {
   type EnergyReserve,
   type Pipeline,
 } from "./api/client";
-import { ReservesToggle } from "./components/ReservesToggle";
-import { PipelinesToggle } from "./components/PipelinesToggle";
 
 function useTheme() {
   const [isDark, setIsDark] = useState(() => {
@@ -29,11 +29,7 @@ function useTheme() {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    root.classList.toggle("dark", isDark);
     localStorage.setItem("theme", isDark ? "dark" : "light");
   }, [isDark]);
 
@@ -77,16 +73,21 @@ export default function App() {
     loadGeoJSON();
     fetchCountries()
       .then(setCountries)
-      .catch(() => {});
+      .catch((e) => console.warn("Failed to load countries:", e));
     fetchReserves()
       .then(setReserves)
-      .catch(() => setReserves([]));
+      .catch((e) => {
+        console.warn("Failed to load reserves:", e);
+        setReserves([]);
+      });
     fetchPipelines()
       .then(setPipelinesData)
-      .catch(() => setPipelinesData([]));
+      .catch((e) => {
+        console.warn("Failed to load pipelines:", e);
+        setPipelinesData([]);
+      });
   }, [loadGeoJSON]);
 
-  // Fetch choropleth data when metric/year changes
   useEffect(() => {
     if (!choroplethMetric) {
       setChoroplethData([]);
@@ -94,10 +95,12 @@ export default function App() {
     }
     fetchChoropleth(choroplethMetric, choroplethYear)
       .then((res) => setChoroplethData(res.data))
-      .catch(() => setChoroplethData([]));
+      .catch((e) => {
+        console.warn("Failed to load choropleth:", e);
+        setChoroplethData([]);
+      });
   }, [choroplethMetric, choroplethYear, setChoroplethData]);
 
-  // Fetch stats for each selected country
   useEffect(() => {
     if (selectedCountries.length === 0) {
       setStatsMap(new Map());
@@ -121,7 +124,6 @@ export default function App() {
           for (const r of results) {
             next.set(r.country.iso3, r);
           }
-          // Remove deselected
           for (const key of next.keys()) {
             if (!selectedCountries.includes(key)) next.delete(key);
           }
@@ -134,13 +136,13 @@ export default function App() {
         )
       )
       .finally(() => setStatsLoading(false));
+    // statsMap intentionally excluded: including it would cause an infinite loop
+    // since this effect writes to statsMap. We only need to react to country selection changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountries]);
 
   const handleSearchSelect = useCallback(
-    (iso3: string) => {
-      setSelectedCountries([iso3]);
-    },
+    (iso3: string) => setSelectedCountries([iso3]),
     [setSelectedCountries]
   );
 
@@ -167,12 +169,11 @@ export default function App() {
 
   const countryName = singleSelected
     ? singleStats?.country.name ??
-      (hoveredFeature
-        ? getCountryName(hoveredFeature)
-        : singleSelected)
+      (hoveredFeature ? getCountryName(hoveredFeature) : singleSelected)
     : "";
 
   const showComparison = selectedCountries.length > 1;
+  const overlayActive = showReserves || showPipelines;
 
   return (
     <div
@@ -209,10 +210,7 @@ export default function App() {
 
         {/* Top toolbar */}
         <div className="absolute top-4 left-4 flex items-center gap-2 z-20 flex-wrap">
-          <CountrySearch
-            countries={countries}
-            onSelect={handleSearchSelect}
-          />
+          <CountrySearch countries={countries} onSelect={handleSearchSelect} />
           <ChoroplethControls
             metric={choroplethMetric}
             year={choroplethYear}
@@ -231,10 +229,10 @@ export default function App() {
         </div>
 
         {/* Mode hint */}
-        {(selectedCountries.length === 1 || showReserves || showPipelines) && (
+        {(selectedCountries.length === 1 || overlayActive) && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
             <span className="text-xs text-slate-400 bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-full border border-slate-600/50">
-              {showReserves || showPipelines
+              {overlayActive
                 ? `${showReserves ? "Reserves" : ""}${showReserves && showPipelines ? " & " : ""}${showPipelines ? "Pipelines" : ""} mode — hover for details. Toggle off to interact with countries.`
                 : "Shift+click to compare countries"}
             </span>
