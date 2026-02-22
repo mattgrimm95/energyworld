@@ -1,7 +1,20 @@
 import { useCallback, useMemo, useState } from "react";
 import Globe from "react-globe.gl";
-import type { MetricType, ChoroplethRow, EnergyReserve, ReserveType } from "../api/client";
-import { RESERVE_TYPE_COLORS, RESERVE_TYPE_LABELS } from "../api/client";
+import type {
+  MetricType,
+  ChoroplethRow,
+  EnergyReserve,
+  ReserveType,
+  Pipeline,
+  PipelineType,
+} from "../api/client";
+import {
+  RESERVE_TYPE_COLORS,
+  RESERVE_TYPE_LABELS,
+  PIPELINE_TYPE_COLORS,
+  PIPELINE_STATUS_LABELS,
+  PIPELINE_TYPE_LABELS,
+} from "../api/client";
 
 const WORLD_GEOJSON =
   "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson";
@@ -63,6 +76,8 @@ type GlobeViewProps = {
   isDark: boolean;
   reserves: EnergyReserve[];
   showReserves: boolean;
+  pipelines: Pipeline[];
+  showPipelines: boolean;
 };
 
 function reservePointColor(r: EnergyReserve): string {
@@ -94,6 +109,54 @@ function reserveRadius(r: EnergyReserve, enlarged: boolean): number {
   return Math.min(0.8, 0.3 + (r.estimatedReserves / 50) * 0.5) * base;
 }
 
+// ── Pipeline helpers ──
+
+function pipelineColor(p: Pipeline): string {
+  return PIPELINE_TYPE_COLORS[p.type as PipelineType] ?? "#ef4444";
+}
+
+function pipelineLabel(p: Pipeline): string {
+  const color = pipelineColor(p);
+  const typeLabel = PIPELINE_TYPE_LABELS[p.type as PipelineType] ?? p.type;
+  const statusLabel =
+    PIPELINE_STATUS_LABELS[p.status as keyof typeof PIPELINE_STATUS_LABELS] ??
+    p.status;
+  const cap =
+    p.capacityValue != null
+      ? `<div style="margin-top:2px;font-size:11px;opacity:0.85">${p.capacityValue.toLocaleString()} ${p.capacityUnit ?? ""}</div>`
+      : "";
+  const len =
+    p.lengthKm != null
+      ? `<div style="font-size:10px;opacity:0.7">${p.lengthKm.toLocaleString()} km</div>`
+      : "";
+  const yr = p.yearBuilt ? ` (${p.yearBuilt})` : "";
+  const statusDot =
+    p.status === "operational"
+      ? "#22c55e"
+      : p.status === "under_construction"
+        ? "#eab308"
+        : p.status === "decommissioned"
+          ? "#6b7280"
+          : "#60a5fa";
+
+  return `<div style="padding:6px 10px;background:rgba(15,23,42,0.92);border:1px solid ${color}40;border-radius:8px;backdrop-filter:blur(8px);min-width:140px;pointer-events:none">
+    <div style="font-size:12px;font-weight:600;color:#f8fafc">${p.name}</div>
+    <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
+      <span style="width:6px;height:6px;border-radius:50%;background:${statusDot};display:inline-block"></span>
+      <span style="font-size:10px;color:#94a3b8">${statusLabel}${yr}</span>
+    </div>
+    <div style="font-size:10px;color:${color};margin-top:1px;text-transform:uppercase;letter-spacing:0.5px">${typeLabel}</div>
+    ${cap}${len}
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">${p.countries}</div>
+  </div>`;
+}
+
+function pipelineStroke(p: Pipeline): number {
+  if (p.status === "decommissioned") return 1.5;
+  if (p.status === "planned" || p.status === "under_construction") return 2.5;
+  return 3.5;
+}
+
 const NOOP_HOVER = () => {};
 const NOOP_CLICK = () => {};
 
@@ -108,22 +171,35 @@ export function GlobeView({
   isDark,
   reserves,
   showReserves,
+  pipelines,
+  showPipelines,
 }: GlobeViewProps) {
+  const overlayActive = showReserves || showPipelines;
+
   const polygonCapColor = useCallback(
     (d: GlobeFeature) => {
       const iso = getISO3(d);
       if (selectedCountries.includes(iso)) return "rgba(34, 197, 94, 0.9)";
-      if (!showReserves && d === hoveredFeature)
+      if (!overlayActive && d === hoveredFeature)
         return "rgba(59, 130, 246, 0.8)";
       if (choroplethMetric) {
         return choroplethColor(choroplethMap.get(iso), choroplethMetric);
       }
-      if (showReserves) {
-        return isDark ? "rgba(30, 58, 138, 0.35)" : "rgba(100, 140, 200, 0.35)";
+      if (overlayActive) {
+        return isDark
+          ? "rgba(30, 58, 138, 0.35)"
+          : "rgba(100, 140, 200, 0.35)";
       }
       return isDark ? "rgba(30, 58, 138, 0.7)" : "rgba(100, 140, 200, 0.7)";
     },
-    [hoveredFeature, selectedCountries, choroplethMetric, choroplethMap, isDark, showReserves]
+    [
+      hoveredFeature,
+      selectedCountries,
+      choroplethMetric,
+      choroplethMap,
+      isDark,
+      overlayActive,
+    ]
   );
 
   const polygonSideColor = useCallback(() => "rgba(0, 0, 0, 0.1)", []);
@@ -133,16 +209,16 @@ export function GlobeView({
   );
   const polygonAltitude = useCallback(
     (d: GlobeFeature) => {
-      if (showReserves) return 0.01;
+      if (overlayActive) return 0.01;
       return d === hoveredFeature || selectedCountries.includes(getISO3(d))
         ? 0.08
         : 0.04;
     },
-    [hoveredFeature, selectedCountries, showReserves]
+    [hoveredFeature, selectedCountries, overlayActive]
   );
   const polygonLabel = useCallback(
     (d: GlobeFeature) => {
-      if (showReserves) return "";
+      if (overlayActive) return "";
       const name = getCountryName(d);
       if (choroplethMetric) {
         const val = choroplethMap.get(getISO3(d));
@@ -150,14 +226,14 @@ export function GlobeView({
       }
       return name;
     },
-    [choroplethMetric, choroplethMap, showReserves]
+    [choroplethMetric, choroplethMap, overlayActive]
   );
 
+  // ── Reserve layers ──
   const pointsData = useMemo(
     () => (showReserves ? reserves : []),
     [showReserves, reserves]
   );
-
   const ringsData = useMemo(
     () => (showReserves ? reserves : []),
     [showReserves, reserves]
@@ -183,8 +259,55 @@ export function GlobeView({
         .padStart(2, "0")}`;
   }, []);
 
-  const effectivePolygonHover = showReserves ? NOOP_HOVER : onPolygonHover;
-  const effectivePolygonClick = showReserves ? NOOP_CLICK : onPolygonClick;
+  // ── Pipeline layers ──
+  const pathsData = useMemo(
+    () => (showPipelines ? pipelines : []),
+    [showPipelines, pipelines]
+  );
+
+  const pathPointsFn = useCallback((d: object) => (d as Pipeline).path, []);
+  const pathColorFn = useCallback(
+    (d: object) => {
+      const p = d as Pipeline;
+      const base = pipelineColor(p);
+      if (p.status === "decommissioned") return `${base}99`;
+      if (p.status === "planned" || p.status === "under_construction")
+        return `${base}cc`;
+      return base;
+    },
+    []
+  );
+  const pathLabelFn = useCallback(
+    (d: object) => pipelineLabel(d as Pipeline),
+    []
+  );
+  const pathStrokeFn = useCallback(
+    (d: object) => pipelineStroke(d as Pipeline),
+    []
+  );
+  const pathDashLength = useCallback(
+    (d: object) => {
+      const p = d as Pipeline;
+      if (p.status === "planned" || p.status === "under_construction")
+        return 0.3;
+      if (p.status === "decommissioned") return 0.2;
+      return 1;
+    },
+    []
+  );
+  const pathDashGap = useCallback(
+    (d: object) => {
+      const p = d as Pipeline;
+      if (p.status === "planned" || p.status === "under_construction")
+        return 0.15;
+      if (p.status === "decommissioned") return 0.1;
+      return 0.05;
+    },
+    []
+  );
+
+  const effectivePolygonHover = overlayActive ? NOOP_HOVER : onPolygonHover;
+  const effectivePolygonClick = overlayActive ? NOOP_CLICK : onPolygonClick;
 
   return (
     <div className="w-full h-full">
@@ -226,6 +349,17 @@ export function GlobeView({
         ringMaxRadius={2.5}
         ringPropagationSpeed={0.6}
         ringRepeatPeriod={2500}
+        pathsData={pathsData}
+        pathPoints={pathPointsFn}
+        pathPointAlt={0.015}
+        pathColor={pathColorFn}
+        pathLabel={pathLabelFn}
+        pathStroke={pathStrokeFn}
+        pathDashLength={pathDashLength}
+        pathDashGap={pathDashGap}
+        pathDashAnimateTime={showPipelines ? 8000 : 0}
+        pathTransitionDuration={600}
+        pathResolution={4}
         rendererConfig={{ antialias: false }}
       />
     </div>

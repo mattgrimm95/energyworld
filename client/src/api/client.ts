@@ -116,3 +116,55 @@ export async function fetchReserves(
   if (!res.ok) throw new Error("Failed to fetch reserves");
   return res.json();
 }
+
+// ── Pipelines ──
+
+export type PipelineType = "oil" | "gas" | "products" | "lng";
+export type PipelineStatus =
+  | "operational"
+  | "planned"
+  | "decommissioned"
+  | "under_construction";
+
+export type Pipeline = {
+  id: number;
+  name: string;
+  type: PipelineType;
+  status: PipelineStatus;
+  capacityValue: number | null;
+  capacityUnit: string | null;
+  lengthKm: number | null;
+  countries: string;
+  yearBuilt: number | null;
+  path: [number, number][];
+};
+
+export const PIPELINE_TYPE_LABELS: Record<PipelineType, string> = {
+  oil: "Oil",
+  gas: "Natural Gas",
+  products: "Refined Products",
+  lng: "LNG",
+};
+
+export const PIPELINE_TYPE_COLORS: Record<PipelineType, string> = {
+  oil: "#ef4444",
+  gas: "#3b82f6",
+  products: "#22c55e",
+  lng: "#a855f7",
+};
+
+export const PIPELINE_STATUS_LABELS: Record<PipelineStatus, string> = {
+  operational: "Operational",
+  planned: "Planned",
+  decommissioned: "Decommissioned",
+  under_construction: "Under Construction",
+};
+
+export async function fetchPipelines(
+  type?: PipelineType
+): Promise<Pipeline[]> {
+  const params = type ? `?type=${type}` : "";
+  const res = await fetch(`${API_BASE}/pipelines${params}`);
+  if (!res.ok) throw new Error("Failed to fetch pipelines");
+  return res.json();
+}

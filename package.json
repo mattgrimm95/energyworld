@@ -5,12 +5,8 @@
   "engines": { "node": ">=18" },
   "overrides": {
     "esbuild": ">=0.25.0",
-    "drizzle-kit": {
-      "esbuild": ">=0.25.0"
-    },
-    "vite": {
-      "esbuild": ">=0.25.0"
-    }
+    "drizzle-kit": { "esbuild": ">=0.25.0" },
+    "vite": { "esbuild": ">=0.25.0" }
   },
   "scripts": {
     "dev:client": "npm run dev --workspace=client",
@@ -23,8 +19,10 @@
     "db:fetch": "npm run db:fetch --workspace=server",
     "db:studio": "npm run db:studio --workspace=server"
   },
-  "dependencies": {
-    "recharts": "^3.7.0"
+  "dependencies": { "recharts": "^3.7.0" },
+  "devDependencies": {
+    "drizzle-orm": "^0.36.1",
+    "drizzle-kit": "0.28.1"
   },
   "workspaces": ["client", "server"]
 }

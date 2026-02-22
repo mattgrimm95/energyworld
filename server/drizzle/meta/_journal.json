@@ -1,1 +1,24 @@
-{"version":"6","dialect":"sqlite","entries":[{"idx":0,"when":0,"tag":"0000_initial","breakpoints":true},{"idx":1,"when":1,"tag":"0001_energy_reserves","breakpoints":true}]}
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "when": 0,
+      "tag": "0000_initial",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "when": 1,
+      "tag": "0001_energy_reserves",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "when": 2,
+      "tag": "0002_pipelines",
+      "breakpoints": true
+    }
+  ]
+}

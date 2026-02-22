@@ -10,12 +10,15 @@ import {
   fetchStats,
   fetchChoropleth,
   fetchReserves,
+  fetchPipelines,
   type Country,
   type StatsResponse,
   type MetricType,
   type EnergyReserve,
+  type Pipeline,
 } from "./api/client";
 import { ReservesToggle } from "./components/ReservesToggle";
+import { PipelinesToggle } from "./components/PipelinesToggle";
 
 function useTheme() {
   const [isDark, setIsDark] = useState(() => {
@@ -67,6 +70,8 @@ export default function App() {
 
   const [reserves, setReserves] = useState<EnergyReserve[]>([]);
   const [showReserves, setShowReserves] = useState(false);
+  const [pipelinesData, setPipelinesData] = useState<Pipeline[]>([]);
+  const [showPipelines, setShowPipelines] = useState(false);
 
   useEffect(() => {
     loadGeoJSON();
@@ -76,6 +81,9 @@ export default function App() {
     fetchReserves()
       .then(setReserves)
       .catch(() => setReserves([]));
+    fetchPipelines()
+      .then(setPipelinesData)
+      .catch(() => setPipelinesData([]));
   }, [loadGeoJSON]);
 
   // Fetch choropleth data when metric/year changes
@@ -195,6 +203,8 @@ export default function App() {
           isDark={isDark}
           reserves={reserves}
           showReserves={showReserves}
+          pipelines={pipelinesData}
+          showPipelines={showPipelines}
         />
 
         {/* Top toolbar */}
@@ -213,15 +223,19 @@ export default function App() {
             active={showReserves}
             onToggle={() => setShowReserves((v) => !v)}
           />
+          <PipelinesToggle
+            active={showPipelines}
+            onToggle={() => setShowPipelines((v) => !v)}
+          />
           <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
         </div>
 
         {/* Mode hint */}
-        {(selectedCountries.length === 1 || showReserves) && (
+        {(selectedCountries.length === 1 || showReserves || showPipelines) && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
             <span className="text-xs text-slate-400 bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-full border border-slate-600/50">
-              {showReserves
-                ? "Reserves mode — hover points for details. Toggle off to interact with countries."
+              {showReserves || showPipelines
+                ? `${showReserves ? "Reserves" : ""}${showReserves && showPipelines ? " & " : ""}${showPipelines ? "Pipelines" : ""} mode — hover for details. Toggle off to interact with countries.`
                 : "Shift+click to compare countries"}
             </span>
           </div>
